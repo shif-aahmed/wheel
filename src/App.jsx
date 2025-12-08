@@ -6,6 +6,8 @@ function App() {
   const [names, setNames] = useState([
     'Ali', 'Beatriz', 'Charles', 'Diya', 'Eric', 'Fatima', 'Gabriel', 'Hanna'
   ])
+  const [results, setResults] = useState([])
+  const [activeTab, setActiveTab] = useState('entries')
   const [newName, setNewName] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [rotation, setRotation] = useState(0)
@@ -16,16 +18,18 @@ function App() {
   const [showWinner, setShowWinner] = useState(false)
   const [winner, setWinner] = useState(null)
   const wheelRef = useRef(null)
+  const winnerProcessedRef = useRef(false)
 
   // Continuous slow rotation and update current rotation
   useEffect(() => {
-    if (!isSpinning) {
+    // Stop slow rotation when spinning, when winner is found, or when pop-up is shown
+    if (!isSpinning && !winner) {
       const interval = setInterval(() => {
         setSlowRotation(prev => (prev + 1.5) % 360)
       }, 50)
       return () => clearInterval(interval)
     }
-  }, [isSpinning])
+  }, [isSpinning, winner])
 
   // Update current rotation continuously (for pointer color)
   useEffect(() => {
@@ -52,7 +56,9 @@ function App() {
   }
 
   const sortNames = () => {
-    const sorted = [...names].sort()
+    const sorted = [...names].sort((a, b) => {
+      return a.localeCompare(b, undefined, { sensitivity: 'base' })
+    })
     setNames(sorted)
   }
 
@@ -67,13 +73,17 @@ function App() {
     
     setIsSpinning(true)
     const startRotation = currentRotation
+    // Capture slowRotation at the start of spin (when button is clicked)
+    const initialSlowRotation = slowRotation
     
     // Calculate random rotation (multiple full spins + random angle)
     const spins = 5 + Math.random() * 5 // 5-10 full spins
+    winnerProcessedRef.current = false
     setRotation(prevRotation => {
       const randomAngle = Math.random() * 360
       const totalRotation = prevRotation + spins * 360 + randomAngle
-      const endRotation = slowRotation + totalRotation
+      // Use initialSlowRotation (captured at spin start) for endRotation calculation
+      const endRotation = initialSlowRotation + totalRotation
       
       // Animate currentRotation during spin to update pointer color
       const duration = 4000 // 4 seconds
@@ -99,20 +109,57 @@ function App() {
           requestAnimationFrame(animate)
         } else {
           setIsSpinning(false)
-          // Calculate which slice the pointer lands on
-          // Pointer is at 0 degrees (right side, pointing left)
-          // Slices start at -90 degrees (top) and are indexed clockwise
-          // When wheel rotates clockwise by endRotation, what's at 0 degrees now
-          // was at -endRotation before rotation (in original wheel coordinates)
-          // Slices start at -90, so angle from top = -endRotation - (-90) = 90 - endRotation
-          const finalRotation = endRotation % 360
-          const angleFromTop = (90 - finalRotation + 360) % 360
-          const sliceAngle = 360 / names.length
-          const selectedIndex = Math.floor(angleFromTop / sliceAngle) % names.length
-          const winnerName = names[selectedIndex]
-          const winnerColor = colors[selectedIndex % colors.length]
-          setWinner({ name: winnerName, color: winnerColor, index: selectedIndex })
-          setShowWinner(true)
+          // Only process winner once
+          if (!winnerProcessedRef.current) {
+            winnerProcessedRef.current = true
+            // Get the actual final displayed rotation
+            // The wheel displays: slowRotation + rotation
+            // At completion: rotation will be set to totalRotation
+            // We need both current slowRotation and rotation values
+            // Use setTimeout to ensure state updates have completed
+            setTimeout(() => {
+              // Check ref to prevent duplicate processing
+              if (!winnerProcessedRef.current) return
+              
+              // Set to false immediately to prevent re-entry
+              winnerProcessedRef.current = false
+              
+              setSlowRotation(currentSlowRotation => {
+                setRotation(currentRotation => {
+                  // Final displayed rotation = currentSlowRotation + currentRotation
+                  // currentRotation should be totalRotation at this point
+                  const finalDisplayRotation = (currentSlowRotation + currentRotation) % 360
+                  const sliceAngle = 360 / names.length
+                  
+                  // Pointer is at 0° (right side, pointing left into the wheel)
+                  // When wheel rotates clockwise by R degrees, what's at pointer (0°) was originally at -R
+                  // In standard coordinates: -R = 360 - R (normalized)
+                  // Slices start at -90° (top) and are indexed clockwise
+                  // To find which slice contains -R: convert to angle from top
+                  const angleAtPointer = (360 - finalDisplayRotation) % 360
+                  // Convert to angle from top (slices start at -90° which is 270° in standard)
+                  // Top is at 270° in standard, so: (angleAtPointer + 90) % 360
+                  const angleFromTop = (angleAtPointer + 90) % 360
+                  // Now find which slice: floor(angleFromTop / sliceAngle)
+                  const selectedIndex = Math.floor(angleFromTop / sliceAngle) % names.length
+                  
+                  const winnerName = names[selectedIndex]
+                  const winnerColor = colors[selectedIndex % colors.length]
+                  setWinner({ name: winnerName, color: winnerColor, index: selectedIndex })
+                  // Add winner to results
+                  setResults(prev => [...prev, winnerName])
+                  setActiveTab('results')
+                  // Wait 1 second before showing pop-up so user can see the winner on the wheel
+                  setTimeout(() => {
+                    setShowWinner(true)
+                  }, 1000)
+                  
+                  return currentRotation
+                })
+                return currentSlowRotation
+              })
+            }, 0)
+          }
         }
       }
       
@@ -139,6 +186,17 @@ function App() {
       setShowWinner(false)
       setWinner(null)
     }
+  }
+
+  const clearResults = () => {
+    setResults([])
+  }
+
+  const sortResults = () => {
+    const sorted = [...results].sort((a, b) => {
+      return a.localeCompare(b, undefined, { sensitivity: 'base' })
+    })
+    setResults(sorted)
   }
 
   useEffect(() => {
@@ -300,8 +358,18 @@ function App() {
             <>
               <div className="sidebar-header">
                 <div className="tabs">
-                  <button className="tab active">Entries {names.length}</button>
-                  <button className="tab">Results 0</button>
+                  <button 
+                    className={`tab ${activeTab === 'entries' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('entries')}
+                  >
+                    Entries {names.length}
+                  </button>
+                  <button 
+                    className={`tab ${activeTab === 'results' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('results')}
+                  >
+                    Results {results.length}
+                  </button>
                 </div>
                 <label className="hide-checkbox">
                   <input 
@@ -313,58 +381,91 @@ function App() {
                 </label>
               </div>
               
-              <div className="sidebar-actions">
-                <button className="action-btn" onClick={shuffleNames} title="Shuffle">
-                  <FiShuffle className="icon" />
-                  <span>Shuffle</span>
-                </button>
-                <button className="action-btn" onClick={sortNames} title="Sort">
-                  <span className="icon" style={{ display: 'flex', flexDirection: 'column', lineHeight: '0.5' }}>
-                    <FiArrowUp style={{ fontSize: '10px' }} />
-                    <FiArrowDown style={{ fontSize: '10px' }} />
-                  </span>
-                  <span>Sort</span>
-                </button>
-                <button className="action-btn dropdown" title="Add image">
-                  <span>Add image</span>
-                  <FiChevronDown className="icon" />
-                </button>
-                <label className="advanced-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={showAdvanced}
-                    onChange={(e) => setShowAdvanced(e.target.checked)}
-                  />
-                  <span>Advanced</span>
-                </label>
-              </div>
+              {activeTab === 'entries' ? (
+                <>
+                  <div className="sidebar-actions">
+                    <button className="action-btn" onClick={shuffleNames} title="Shuffle">
+                      <FiShuffle className="icon" />
+                      <span>Shuffle</span>
+                    </button>
+                    <button className="action-btn" onClick={sortNames} title="Sort">
+                      <span className="icon" style={{ display: 'flex', flexDirection: 'column', lineHeight: '0.5' }}>
+                        <FiArrowUp style={{ fontSize: '10px' }} />
+                        <FiArrowDown style={{ fontSize: '10px' }} />
+                      </span>
+                      <span>Sort</span>
+                    </button>
+                    <button className="action-btn dropdown" title="Add image">
+                      <span>Add image</span>
+                      <FiChevronDown className="icon" />
+                    </button>
+                    <label className="advanced-checkbox">
+                      <input 
+                        type="checkbox" 
+                        checked={showAdvanced}
+                        onChange={(e) => setShowAdvanced(e.target.checked)}
+                      />
+                      <span>Advanced</span>
+                    </label>
+                  </div>
 
-              <div className="entries-list">
-                <div className="add-name-input">
-                  <input
-                    type="text"
-                    placeholder="Add name..."
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
-                  <button onClick={addName}>+</button>
-                </div>
-                <div className="names-container">
-                  {names.map((name, index) => (
-                    <div key={index} className="name-item">
-                      <span>{name}</span>
-                      <button 
-                        className="remove-btn"
-                        onClick={() => removeName(name)}
-                        title="Remove"
-                      >
-                        ×
-                      </button>
+                  <div className="entries-list">
+                    <div className="add-name-input">
+                      <input
+                        type="text"
+                        placeholder="Add name..."
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                      />
+                      <button onClick={addName}>+</button>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="names-container">
+                      {names.map((name, index) => (
+                        <div key={index} className="name-item">
+                          <span>{name}</span>
+                          <button 
+                            className="remove-btn"
+                            onClick={() => removeName(name)}
+                            title="Remove"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="sidebar-actions">
+                    <button className="action-btn" onClick={sortResults} title="Sort">
+                      <FiArrowUp className="icon" />
+                      <span>Sort</span>
+                    </button>
+                    <button className="action-btn" onClick={clearResults} title="Clear the list">
+                      <span className="icon">×</span>
+                      <span>Clear the list</span>
+                    </button>
+                  </div>
+
+                  <div className="entries-list">
+                    <div className="names-container">
+                      {results.length === 0 ? (
+                        <div style={{ color: '#888', textAlign: 'center', padding: '20px' }}>
+                          No results yet
+                        </div>
+                      ) : (
+                        results.map((name, index) => (
+                          <div key={index} className="name-item">
+                            <span>{name}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
               
               <div className="sidebar-footer">
                 <span className="version-text">Version 387</span>

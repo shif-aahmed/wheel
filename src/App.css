@@ -373,8 +373,7 @@ html, body {
 .winner-popup {
   background-color: #1a1a1a;
   border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
+  width: 500px;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
@@ -441,6 +440,7 @@ html, body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 80px;
 }
 
 .winner-btn.close-btn {
@@ -452,13 +452,20 @@ html, body {
   background-color: #3a3a3a;
 }
 
-.winner-btn.remove-btn {
-  background-color: #2563eb;
-  color: white;
+.winner-popup .winner-btn.remove-btn {
+  background-color: #2563eb !important;
+  color: white !important;
+  font-size: 14px !important;
+  padding: 12px 24px !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: normal !important;
+  display: inline-block !important;
 }
 
-.winner-btn.remove-btn:hover {
-  background-color: #1d4ed8;
+.winner-popup .winner-btn.remove-btn:hover {
+  background-color: #1d4ed8 !important;
+  color: white !important;
 }
 
 .sidebar-footer {
