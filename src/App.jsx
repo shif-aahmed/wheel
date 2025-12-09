@@ -290,11 +290,11 @@ function App() {
             // Reset ref after processing
             winnerProcessedRef.current = false
             
-            // Wait 5 seconds after wheel stops, then show pop-up
+            // Wait 1 second after wheel stops, then show pop-up
             // Wheel remains frozen during this time and until pop-up is closed
             setTimeout(() => {
               setShowWinner(true)
-            }, 2000)
+            }, 1000)
           }
         }
       }
