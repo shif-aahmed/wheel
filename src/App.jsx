@@ -448,11 +448,61 @@ function App() {
                 })}
                 <circle cx="375" cy="375" r="55" fill="white" filter="url(#shadow)"/>
               </svg>
+              {/* Fixed arc text overlay - doesn't rotate */}
+              {!isSpinning && !showWinner && !winner && (
+                <svg 
+                  className="wheel-text-overlay"
+                  viewBox="0 0 750 750"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 5
+                  }}
+                >
+                  <defs>
+                    {/* Arc path for "Click to spin" - at the top of center circle */}
+                    <path id="arcPath1-fullscreen" d="M 295 295 A 80 80 0 0 1 455 295" fill="none" />
+                    {/* Arc path for "or press ctrl+enter" - U-shape: start/end at top, center at bottom */}
+                    <path id="arcPath2-fullscreen" d="M 280 470 Q 375 590 470 470" fill="none" />
+                  </defs>
+                  {/* "Click to spin" text at the top */}
+                  <text
+                    fill="white"
+                    fontSize="42"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    style={{
+                      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <textPath href="#arcPath1-fullscreen" startOffset="50%">
+                      Click to spin
+                    </textPath>
+                  </text>
+                  {/* "or press ctrl+enter" text at the bottom */}
+                  <text
+                    fill="white"
+                    fontSize="28"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    style={{
+                      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <textPath href="#arcPath2-fullscreen" startOffset="50%">
+                      or press ctrl+enter
+                    </textPath>
+                  </text>
+                </svg>
+              )}
               <div className="wheel-pointer"></div>
-              <div className="wheel-overlay" onClick={(e) => e.stopPropagation()}>
-                <div className="spin-text">{isSpinning ? 'Spinning...' : 'Click to spin'}</div>
-                <div className="spin-text-small">or press ctrl+enter</div>
-              </div>
             </div>
           </div>
         </div>
@@ -586,11 +636,61 @@ function App() {
               })}
               <circle cx="375" cy="375" r="55" fill="white" filter="url(#shadow)"/>
             </svg>
+            {/* Fixed arc text overlay - doesn't rotate */}
+            {!isSpinning && !showWinner && !winner && (
+              <svg 
+                className="wheel-text-overlay"
+                viewBox="0 0 750 750"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  zIndex: 5
+                }}
+              >
+                <defs>
+                  {/* Arc path for "Click to spin" - at the top of center circle */}
+                  <path id="arcPath1" d="M 295 295 A 80 80 0 0 1 455 295" fill="none" />
+                  {/* Arc path for "or press ctrl+enter" - U-shape: start/end at top, center at bottom */}
+                  <path id="arcPath2" d="M 280 470 Q 375 590 470 470" fill="none" />
+                </defs>
+                {/* "Click to spin" text at the top */}
+                <text
+                  fill="white"
+                  fontSize="42"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  style={{
+                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <textPath href="#arcPath1" startOffset="50%">
+                    Click to spin
+                  </textPath>
+                </text>
+                {/* "or press ctrl+enter" text at the bottom */}
+                <text
+                  fill="white"
+                  fontSize="28"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  style={{
+                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <textPath href="#arcPath2" startOffset="50%">
+                    or press ctrl+enter
+                  </textPath>
+                </text>
+              </svg>
+            )}
             <div className="wheel-pointer"></div>
-            <div className="wheel-overlay" onClick={(e) => e.stopPropagation()}>
-              <div className="spin-text">{isSpinning ? 'Spinning...' : 'Click to spin'}</div>
-              <div className="spin-text-small">or press ctrl+enter</div>
-            </div>
           </div>
         </div>
 
